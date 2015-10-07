@@ -64,19 +64,17 @@ public:
     }
 
     virtual const vec_t& forward_propagation(const vec_t& in, size_t index) {
-        for_(parallelize_, 0, out_size_, [&](const blocked_range& r) {
-            for (int i = r.begin(); i < r.end(); i++) {
-                const auto& in_index = out2in_[i];
-                float_t max_value = std::numeric_limits<float_t>::lowest();
+		FOR_I_EXP(out_size_, {
+            const auto& in_index = out2in_[i];
+            float_t max_value = std::numeric_limits<float_t>::lowest();
                 
-                for (auto j : in_index) {
-                    if (in[j] > max_value) {
-                        max_value = in[j];
-                        out2inmax_[i] = j;
-                    }
+            for (auto j : in_index) {
+                if (in[j] > max_value) {
+                    max_value = in[j];
+                    out2inmax_[i] = j;
                 }
-                output_[index][i] = max_value;
             }
+            output_[index][i] = max_value;
         });
         return next_ ? next_->forward_propagation(output_[index], index) : output_[index];
     }
@@ -86,11 +84,9 @@ public:
         const activation::function& prev_h = prev_->activation_function();
         vec_t& prev_delta = prev_delta_[index];
 
-        for_(parallelize_, 0, in_size_, [&](const blocked_range& r) {
-            for (int i = r.begin(); i != r.end(); i++) {
-                int outi = in2out_[i];
-                prev_delta[i] = (out2inmax_[outi] == i) ? current_delta[outi] * prev_h.df(prev_out[i]) : 0.0;
-            }
+		FOR_I_EXP(in_size_, {
+	        int outi = in2out_[i];
+            prev_delta[i] = (out2inmax_[outi] == i) ? current_delta[outi] * prev_h.df(prev_out[i]) : 0.0;
         });
         return prev_->back_propagation(prev_delta_[index], index);
     }

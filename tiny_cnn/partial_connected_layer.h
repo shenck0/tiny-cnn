@@ -85,7 +85,7 @@ public:
     const vec_t& forward_propagation(const vec_t& in, size_t index) override {
         vec_t& a = a_[index];
      
-        for_i(parallelize_, out_size_, [&](int i) {
+		FOR_I_EXP(out_size_, {
             const wi_connections& connections = out2wi_[i];
 
             a[i] = 0.0;
@@ -97,7 +97,7 @@ public:
             a[i] += b_[out2bias_[i]];
         });
 
-        for_i(parallelize_, out_size_, [&](int i) {
+		FOR_I_EXP(out_size_,{
             output_[index][i] = h_.f(a, i);
         });
 
@@ -109,28 +109,24 @@ public:
         const activation::function& prev_h = prev_->activation_function();
         vec_t& prev_delta = prev_delta_[index];
 
-        for_(parallelize_, 0, in_size_, [&](const blocked_range& r) {
-            for (int i = r.begin(); i != r.end(); i++) {
-                const wo_connections& connections = in2wo_[i];
-                float_t delta = 0.0;
+		FOR_I_EXP(in_size_, {
+            const wo_connections& connections = in2wo_[i];
+            float_t delta = 0.0;
 
-                for (auto connection : connections) 
-                    delta += W_[connection.first] * current_delta[connection.second]; // 40.6%
+            for (auto connection : connections) 
+                delta += W_[connection.first] * current_delta[connection.second]; // 40.6%
 
-                prev_delta[i] = delta * scale_factor_ * prev_h.df(prev_out[i]); // 2.1%
-            }
+            prev_delta[i] = delta * scale_factor_ * prev_h.df(prev_out[i]); // 2.1%
         });
 
-        for_(parallelize_, 0, weight2io_.size(), [&](const blocked_range& r) {
-            for (int i = r.begin(); i < r.end(); i++) {
-                const io_connections& connections = weight2io_[i];
-                float_t diff = 0.0;
+		FOR_I_EXP(weight2io_.size(),{
+            const io_connections& connections = weight2io_[i];
+            float_t diff = 0.0;
 
-                for (auto connection : connections) // 11.9%
-                    diff += prev_out[connection.first] * current_delta[connection.second];
+            for (auto connection : connections) // 11.9%
+                diff += prev_out[connection.first] * current_delta[connection.second];
 
-                dW_[index][i] += diff * scale_factor_;
-            }
+            dW_[index][i] += diff * scale_factor_;
         });
 
         for (size_t i = 0; i < bias2out_.size(); i++) {

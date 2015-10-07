@@ -238,16 +238,40 @@ private:
 
 #endif // CNN_USE_TBB
 
+#ifdef CNN_USE_OMP
+#define FOR_I_EXP(size,code) for(int i=0; i<(int)size;i++){ \
+	_Pragma("omp parallel for") \
+	code \
+	}
+#endif
+
+#ifndef CNN_USE_OMP
+#define FOR_I_EXP(size,code) for(int i=0; i<(int)size;i++){ \
+	code \
+	}
+#endif
+
 template <typename Func>
 void for_i(bool parallelize, int size, Func f)
 {
-    for_(parallelize, 0, size, [&](const blocked_range& r) {
+	//origin
+    /*for_(parallelize, 0, size, [&](const blocked_range& r) {
 #ifdef CNN_USE_OMP
 #pragma omp parallel for
 #endif
         for (int i = r.begin(); i < r.end(); i++)
             f(i);
-    });
+    });*/
+
+	//expand function "for_" here
+	//blocked_range r(0, size);
+	/*for (int i = 0; i < size; i++){
+#ifdef CNN_USE_OMP
+#pragma omp parallel for
+#endif
+		f(i);
+	*/
+	FOR_I_EXP(size, f(i);)
 }
 
 template <typename Func>
@@ -267,11 +291,22 @@ template <typename Container> inline bool has_infinite(const Container& c) {
     return false;
 }
 
+//template <typename Container>
+//size_t max_size(const Container& c) {
+//    typedef typename Container::value_type value_t;
+//    return std::max_element(c.begin(), c.end(),
+//        [](const value_t& left, const value_t& right) { return left.size() < right.size(); })->size();
+//}
+
+template <typename value_t>
+bool _conv_lambda_in_max_size_(const value_t& left, const value_t& right) {
+	return left.size() < right.size();
+}
+
 template <typename Container>
 size_t max_size(const Container& c) {
-    typedef typename Container::value_type value_t;
-    return std::max_element(c.begin(), c.end(),
-        [](const value_t& left, const value_t& right) { return left.size() < right.size(); })->size();
+	typedef typename Container::value_type value_t;
+	return std::max_element(c.begin(), c.end(), _conv_lambda_in_max_size_<value_t>)->size();
 }
 
 inline std::string format_str(const char *fmt, ...) {

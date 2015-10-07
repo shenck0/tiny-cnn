@@ -106,7 +106,7 @@ public:
     Optimizer&   optimizer()            { return optimizer_; }
 
     void         init_weight()          { layers_.init_weight(); }
-    void         add(std::shared_ptr<layer_base> layer) { layers_.add(layer); }
+    void         add(layer_base* layer) { layers_.add(layer); }
     vec_t        predict(const vec_t& in) { return fprop(in); }
 
     /**
@@ -269,7 +269,7 @@ public:
 
     template <typename WeightInit>
     network& weight_init(const WeightInit& f) {
-        auto ptr = std::make_shared<WeightInit>(f);
+        auto ptr = new WeightInit(f);
         for (size_t i = 0; i < depth(); i++)
           layers_[i]->weight_init(ptr);
         return *this;
@@ -277,7 +277,7 @@ public:
 
     template <typename BiasInit>
     network& bias_init(const BiasInit& f) { 
-        auto ptr = std::make_shared<BiasInit>(f);
+        auto ptr = new BiasInit(f);
         for (size_t i = 0; i < depth(); i++)
             layers_[i]->bias_init(ptr);
         return *this;
@@ -366,7 +366,7 @@ private:
     float_t get_loss(const vec_t& out, const vec_t& t) {
         float_t e = 0.0;
         assert(out.size() == t.size());
-        for_i(out.size(), [&](int i){ e += E::f(out[i], t[i]); });
+		FOR_I_EXP(out.size(), { e += E::f(out[i], t[i]); });
         return e;
     }
 
@@ -375,9 +375,9 @@ private:
         const activation::function& h = layers_.tail()->activation_function();
 
         if (is_canonical_link(h)) {
-            for_i(out_dim(), [&](int i){ delta[i] = target_value_max() * h.df(out[i]);});
+			FOR_I_EXP(out_dim(), { delta[i] = target_value_max() * h.df(out[i]);});
         } else {
-            for_i(out_dim(), [&](int i){ delta[i] = target_value_max() * h.df(out[i]) * h.df(out[i]);}); // FIXME
+			FOR_I_EXP(out_dim(), { delta[i] = target_value_max() * h.df(out[i]) * h.df(out[i]);}); // FIXME
         }
 
         layers_.tail()->back_propagation_2nd(delta);
@@ -388,7 +388,7 @@ private:
         const activation::function& h = layers_.tail()->activation_function();
 
         if (is_canonical_link(h)) {
-            for_i(out_dim(), [&](int i){ delta[i] = out[i] - t[i]; });
+			FOR_I_EXP(out_dim(), { delta[i] = out[i] - t[i]; });
         } else {
             vec_t dE_dy = gradient<E>(out, t);
 
@@ -412,17 +412,17 @@ private:
 
         w[check_index] = prev_w + delta;
         float_t f_p = 0.0;
-        for_i(data_size, [&](int i){ f_p += get_loss(fprop(in[i]), v[i]); });
+		FOR_I_EXP(data_size, { f_p += get_loss(fprop(in[i]), v[i]); });
 
         float_t f_m = 0.0;
         w[check_index] = prev_w - delta;
-        for_i(data_size, [&](int i){ f_m += get_loss(fprop(in[i]), v[i]); });
+		FOR_I_EXP(data_size, { f_m += get_loss(fprop(in[i]), v[i]); });
 
         float_t delta_by_numerical = (f_p - f_m) / (2.0 * delta);
         w[check_index] = prev_w;
 
         // calculate dw/dE by bprop
-        for_i(data_size, [&](int i){ bprop(fprop(in[i]), v[i]); });
+		FOR_I_EXP(data_size, { bprop(fprop(in[i]), v[i]); });
 
         float_t delta_by_bprop = dw[check_index];
 
@@ -496,13 +496,13 @@ network<loss_func, algorithm> make_mlp(const std::vector<int>& units) {
 
 template <typename L, typename O, typename Layer>
 network<L, O>& operator << (network<L, O>& n, const Layer&& l) {
-    n.add(std::make_shared<Layer>(l));
+    n.add(new Layer(l));
     return n;
 }
 
 template <typename L, typename O, typename Layer>
 network<L, O>& operator << (network<L, O>& n, Layer& l) {
-    n.add(std::make_shared<Layer>(l));
+    n.add(new Layer(l));
     return n;
 }
 

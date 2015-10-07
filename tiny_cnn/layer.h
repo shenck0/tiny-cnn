@@ -42,19 +42,26 @@ class layer_base {
 public:
     friend void connection_mismatch(const layer_base& from, const layer_base& to);
 
-    virtual ~layer_base() {}
+    virtual ~layer_base() {
+		//FIXME: now,weight_init_ & bias_init_ will cause slight memory leak.
+	/*	if (weight_init_)
+			delete weight_init_;
+		if (bias_init_)
+			delete bias_init_;
+		weight_init_ = bias_init_ = NULL;*/
+	}
 
     layer_base(layer_size_t in_dim, layer_size_t out_dim, size_t weight_dim, size_t bias_dim)
         : parallelize_(true), next_(nullptr), prev_(nullptr),
-          weight_init_(std::make_shared<weight_init::xavier>()),
-          bias_init_(std::make_shared<weight_init::constant>(0.0)) {
+          weight_init_(new weight_init::xavier()),
+          bias_init_(new weight_init::constant(0.0)) {
         set_size(in_dim, out_dim, weight_dim, bias_dim);
     }
 
-    void connect(std::shared_ptr<layer_base>& tail) {
+    void connect(layer_base*& tail) {
         if (out_size() != 0 && tail->in_size() != out_size())
             connection_mismatch(*this, *tail);
-        next_ = tail.get();
+        next_ = tail;
         tail->prev_ = this;
     }
 
@@ -123,16 +130,16 @@ public:
     /////////////////////////////////////////////////////////////////////////
     // setter
     template <typename WeightInit>
-    layer_base& weight_init(const WeightInit& f) { weight_init_ = std::make_shared<WeightInit>(f); return *this; }
+    layer_base& weight_init(const WeightInit& f) { weight_init_ = new WeightInit(f); return *this; }
 
     template <typename BiasInit>
-    layer_base& bias_init(const BiasInit& f) { bias_init_ = std::make_shared<BiasInit>(f); return *this; }
+    layer_base& bias_init(const BiasInit& f) { bias_init_ = new BiasInit(f); return *this; }
 
     template <typename WeightInit>
-    layer_base& weight_init(std::shared_ptr<WeightInit> f) { weight_init_ = f; return *this; }
+    layer_base& weight_init(WeightInit* f) { weight_init_ = f; return *this; }
 
     template <typename BiasInit>
-    layer_base& bias_init(std::shared_ptr<BiasInit> f) { bias_init_ = f; return *this; }
+    layer_base& bias_init(BiasInit* f) { bias_init_ = f; return *this; }
 
     /////////////////////////////////////////////////////////////////////////
     // save/load
@@ -224,18 +231,30 @@ protected:
     vec_t Whessian_; // diagonal terms of hessian matrix
     vec_t bhessian_;
     vec_t prev_delta2_; // d^2E/da^2
-    std::shared_ptr<weight_init::function> weight_init_;
-    std::shared_ptr<weight_init::function> bias_init_;
+    weight_init::function* weight_init_ = NULL;
+    weight_init::function* bias_init_ = NULL;
 
 private:
+
+	struct _conv_lambda_in_merge_
+	{
+		size_t _batch_size;
+		_conv_lambda_in_merge_(){ }
+		void set(int batch_size) {
+			_batch_size = batch_size;
+		}
+		double operator () (double x) const { return x / _batch_size; }
+	}_t_inst_1;
+
     void merge(size_t worker_size, size_t batch_size) {
         for (size_t i = 1; i < worker_size; i++)
             vectorize::reduce<float_t>(&dW_[i][0], dW_[i].size(), &dW_[0][0]);
         for (size_t i = 1; i < worker_size; i++)
             vectorize::reduce<float_t>(&db_[i][0], db_[i].size(), &db_[0][0]);
 
-        std::transform(dW_[0].begin(), dW_[0].end(), dW_[0].begin(), [&](float_t x) { return x / batch_size; });
-        std::transform(db_[0].begin(), db_[0].end(), db_[0].begin(), [&](float_t x) { return x / batch_size; });
+		_t_inst_1.set(batch_size);
+        std::transform(dW_[0].begin(), dW_[0].end(), dW_[0].begin(), _t_inst_1);
+        std::transform(db_[0].begin(), db_[0].end(), db_[0].begin(), _t_inst_1);
     }
 
     void clear_diff(size_t worker_size) {
@@ -270,7 +289,7 @@ public:
         : layer_base(in_dim, out_dim, weight_dim, bias_dim) {}
 
     activation::function& activation_function() override { return h_; }
-protected:
+//protected:
     Activation h_;
 };
 

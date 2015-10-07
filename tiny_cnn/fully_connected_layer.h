@@ -52,26 +52,26 @@ public:
         return out_size_;
     }
 
-    const vec_t& forward_propagation(const vec_t& in, size_t index) {
-        vec_t &a = a_[index];
-        vec_t &out = output_[index];
+	const vec_t& forward_propagation(const vec_t& in, size_t index) {
+		vec_t &a = a_[index];
+		vec_t &out = output_[index];
 
-        for_i(parallelize_, out_size_, [&](int i) {
-            a[i] = 0.0;
-            for (int c = 0; c < in_size_; c++)
-                a[i] += W_[c*out_size_ + i] * in[c];
+		FOR_I_EXP(out_size_,{
+			a[i] = 0.0;
+			for (int c = 0; c < in_size_; c++)
+				a[i] += W_[c*out_size_ + i] * in[c];
 
-            a[i] += b_[i];
-        });
+			a[i] += b_[i];
+		});
 
-        for_i(parallelize_, out_size_, [&](int i) {
-            out[i] = h_.f(a, i);
-        });
+		FOR_I_EXP(out_size_,{
+			out[i] = h_.f(a, i);
+		});
 
-        auto& this_out = filter_.filter_fprop(out, index);
+		auto& this_out = filter_.filter_fprop(out, index);
 
-        return next_ ? next_->forward_propagation(this_out, index) : this_out;
-    }
+		return next_ ? next_->forward_propagation(this_out, index) : this_out;
+	}
 
     const vec_t& back_propagation(const vec_t& current_delta, size_t index) {
         const vec_t& curr_delta = filter_.filter_bprop(current_delta, index);
@@ -88,14 +88,13 @@ public:
             prev_delta[c] *= prev_h.df(prev_out[c]);
         }
 
-        for_(parallelize_, 0, out_size_, [&](const blocked_range& r) {
-            // accumulate weight-step using delta
-            // dW[c * out_size + i] += current_delta[i] * prev_out[c]
-            for (int c = 0; c < in_size_; c++)
-                vectorize::muladd(&curr_delta[0], prev_out[c], r.end() - r.begin(), &dW[c*out_size_ + r.begin()]);
-
-            for (int i = r.begin(); i < r.end(); i++) 
-                db[i] += curr_delta[i];
+		// accumulate weight-step using delta
+		// dW[c * out_size + i] += current_delta[i] * prev_out[c]
+		blocked_range r(0, out_size_);
+		for (int c = 0; c < in_size_; c++)
+			vectorize::muladd(&curr_delta[0], prev_out[c], r.end() - r.begin(), &dW[c*out_size_ + r.begin()]);
+		FOR_I_EXP(out_size_, {
+            db[i] += curr_delta[i];
         });
 
         return prev_->back_propagation(prev_delta_[index], index);

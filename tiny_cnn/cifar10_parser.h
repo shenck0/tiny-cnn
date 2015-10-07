@@ -50,6 +50,17 @@ namespace tiny_cnn {
  * @param x_padding  [in]  adding border width (left,right)
  * @param y_padding  [in]  adding border width (top,bottom)
  **/
+
+struct _conv_lambda_in_parse_cifar10_
+{
+	_conv_lambda_in_parse_cifar10_() { }
+	float_t _scale_min, _scale_max;
+	void set(float_t scale_min, float_t scale_max) {
+		_scale_min = scale_min; _scale_max = scale_max;
+	}
+	unsigned char operator () (unsigned char c) const { return (unsigned char)(_scale_min + (_scale_max - _scale_min) * c / 255); }
+}_t_inst_1;
+
 inline void parse_cifar10(const std::string& filename,
                           std::vector<vec_t> *train_images,
                           std::vector<label_t> *train_labels,
@@ -93,8 +104,11 @@ inline void parse_cifar10(const std::string& filename,
         }
         else
         {
-            std::transform(buf.begin(), buf.end(), std::back_inserter(img),
-                [=](unsigned char c) { return scale_min + (scale_max - scale_min) * c / 255; });
+            /*std::transform(buf.begin(), buf.end(), std::back_inserter(img),
+                [=](unsigned char c) { return scale_min + (scale_max - scale_min) * c / 255; });*/
+
+			_t_inst_1.set(scale_min, scale_max);
+			std::transform(buf.begin(), buf.end(), std::back_inserter(img), _t_inst_1);
         }
 
         train_images->push_back(img);

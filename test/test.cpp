@@ -88,7 +88,7 @@ TEST(convolutional, fprop) {
 
 TEST(convolutional, bprop) {
     network<cross_entropy, gradient_descent_levenberg_marquardt> nn;
-
+	
     nn << convolutional_layer<sigmoid>(5, 5, 3, 1, 1);
 
     vec_t a(25, 0.0), t(9, 0.0);
@@ -117,7 +117,7 @@ TEST(convolutional, bprop) {
 TEST(convolutional, gradient_check) { // tanh - mse
     network<mse, gradient_descent_levenberg_marquardt> nn;
     nn << convolutional_layer<tan_h>(5, 5, 3, 1, 1);
-
+	
     vec_t a(25, 0.0);
     label_t t = 3;
 
@@ -346,7 +346,7 @@ TEST(multi_layer, gradient_check2) { // tan_h - mse
     typedef mse loss_func;
     typedef tan_h activation;
     typedef network<loss_func, gradient_descent_levenberg_marquardt> network;
-
+	//notice mem cost here!
     network nn;
     nn << fully_connected_layer<activation>(10, 14 * 14 * 3)
         << convolutional_layer<activation>(14, 14, 5, 3, 6)

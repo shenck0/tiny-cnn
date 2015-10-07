@@ -70,7 +70,7 @@ public:
     gradient_descent_levenberg_marquardt() : alpha(0.00085), mu(0.02) {}
 
     void update(const vec_t& dW, const vec_t& Hessian, vec_t& W) {
-        for_i(W.size(), [&](int i){
+        FOR_I_EXP(W.size(), {
             W[i] = W[i] - (alpha / (Hessian[i] + mu)) * dW[i];
         });
     }
@@ -92,7 +92,7 @@ struct adagrad : public stateful_optimizer<float_t, 1, false> {
     void update(const vec_t& dW, const vec_t& /*Hessian*/, vec_t &W) {
         vec_t& g = get<0>(W);
 
-        for_i(W.size(), [&](int i) {
+		FOR_I_EXP(W.size(), {
             g[i] += dW[i] * dW[i];
             W[i] -= alpha * dW[i] / (std::sqrt(g[i]) + eps);
         });
@@ -115,7 +115,7 @@ struct RMSprop : public stateful_optimizer<float_t, 1, false> {
     void update(const vec_t& dW, const vec_t& /*Hessian*/, vec_t& W) {
         vec_t& g = get<0>(W);
 
-        for_i(W.size(), [&](int i){
+		FOR_I_EXP(W.size(), {
             g[i] = mu * g[i] + (1 - mu) * dW[i] * dW[i];
             W[i] -= alpha * dW[i] / std::sqrt(g[i] + eps);
         });
@@ -137,7 +137,7 @@ struct gradient_descent : public optimizer<false> {
     gradient_descent() : alpha(0.01), lambda(0.0) {}
 
     void update(const vec_t& dW, const vec_t& /*Hessian*/, vec_t& W) {
-        for_i(W.size(), [&](int i){
+		FOR_I_EXP(W.size(), {
             W[i] = W[i] - alpha * (dW[i] + lambda * W[i]);
         });
     }
@@ -160,7 +160,7 @@ public:
     void update(const vec_t& dW, const vec_t& /*Hessian*/, vec_t& W) {
         vec_t& dWprev = get<0>(W);
 
-        for_i(W.size(), [&](int i){
+		FOR_I_EXP(W.size(), {
             float_t V = mu * dWprev[i] - alpha * (dW[i] + W[i] * lambda);
             W[i]      += V;
             dWprev[i] =  V;
