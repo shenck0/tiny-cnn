@@ -40,15 +40,15 @@ public:
     fully_connected_layer(layer_size_t in_dim, layer_size_t out_dim)
         : Base(in_dim, out_dim, size_t(in_dim) * out_dim, out_dim), filter_(out_dim) {}
 
-    size_t connection_size() const override {
+    size_t connection_size() const {
         return size_t(in_size_) * out_size_ + out_size_;
     }
 
-    size_t fan_in_size() const override {
+    size_t fan_in_size() const {
         return in_size_;
     }
 
-    size_t fan_out_size() const override {
+    size_t fan_out_size() const {
         return out_size_;
     }
 
@@ -68,7 +68,7 @@ public:
 			out[i] = h_.f(a, i);
 		});
 
-		auto& this_out = filter_.filter_fprop(out, index);
+		const vec_t& this_out = filter_.filter_fprop(out, index);
 
 		return next_ ? next_->forward_propagation(this_out, index) : this_out;
 	}
@@ -123,7 +123,7 @@ public:
         return prev_->back_propagation_2nd(prev_delta2_);
     }
 
-    std::string layer_type() const override { return "fully-connected"; }
+    std::string layer_type() const { return "fully-connected"; }
 
 protected:
     Filter filter_;

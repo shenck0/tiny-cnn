@@ -95,7 +95,7 @@ public:
 
         // color palette (256*3byte)
         for (int i = 0; i < 256; i++) {
-            const auto v = static_cast<const char>(i);
+			const char v = static_cast<const char>(i);
             ofs.write(&v, 1);//R
             ofs.write(&v, 1);//G
             ofs.write(&v, 1);//B
@@ -162,18 +162,20 @@ inline image vec2image(const vec_t& vec, int block_size = 2, int max_cols = 20)
 
     image img;
     const layer_size_t border_width = 1;
-    const auto cols = vec.size() >= (size_t)max_cols ? (size_t)max_cols : vec.size();
-    const auto rows = (vec.size() - 1) / cols + 1;
-    const auto pitch = block_size + border_width;
-    const auto width = pitch * cols + border_width;
-    const auto height = pitch * rows + border_width;
+    const size_t cols = vec.size() >= (size_t)max_cols ? (size_t)max_cols : vec.size();
+    const size_t rows = (vec.size() - 1) / cols + 1;
+    const size_t pitch = block_size + border_width;
+    const size_t width = pitch * cols + border_width;
+    const size_t height = pitch * rows + border_width;
     const image::intensity_t bg_color = 255;
     size_t current_idx = 0;
 
     img.resize(width, height);
     img.fill(bg_color);
 
-    auto minmax = std::minmax_element(vec.begin(), vec.end());
+	std::pair<double, double> minmax;
+	minmax.first = *std::min_element(vec.begin(), vec.end());
+	minmax.second = *std::max_element(vec.begin(), vec.end());
 
     for (unsigned int r = 0; r < rows; r++) {
         int topy = pitch * r + border_width;
@@ -182,7 +184,7 @@ inline image vec2image(const vec_t& vec, int block_size = 2, int max_cols = 20)
             int leftx = pitch * c + border_width;
             const float_t src = vec[current_idx];
             image::intensity_t dst
-                = static_cast<image::intensity_t>(rescale(src, *minmax.first, *minmax.second, 0, 255));
+                = static_cast<image::intensity_t>(rescale(src, minmax.first, minmax.second, 0, 255));
 
             for (int y = 0; y < block_size; y++)
               for (int x = 0; x < block_size; x++)
@@ -215,27 +217,29 @@ inline image vec2image(const vec_t& vec, const index3d<layer_size_t>& maps) {
         throw nn_error("failed to visualize image: vector size invalid");
 
     const layer_size_t border_width = 1;
-    const auto pitch = maps.width_ + border_width;
-    const auto width = maps.depth_ * pitch + border_width;
-    const auto height = maps.height_ + 2 * border_width;
+    const int pitch = maps.width_ + border_width;
+    const int width = maps.depth_ * pitch + border_width;
+    const int height = maps.height_ + 2 * border_width;
     const image::intensity_t bg_color = 255;
     image img;
 
     img.resize(width, height);
     img.fill(bg_color);
 
-    auto minmax = std::minmax_element(vec.begin(), vec.end());
+	std::pair<double, double> minmax;
+	minmax.first = *std::min_element(vec.begin(), vec.end());
+	minmax.second = *std::max_element(vec.begin(), vec.end());
 
     for (layer_size_t c = 0; c < maps.depth_; ++c) {
-        const auto top = border_width;
-        const auto left = c * pitch + border_width;
+        const size_t top = border_width;
+        const size_t left = c * pitch + border_width;
 
         for (layer_size_t y = 0; y < maps.height_; ++y) {
             for (layer_size_t x = 0; x < maps.width_; ++x) {
                 const float_t val = vec[maps.get_index(x, y, c)];
 
                 img.at(left + x, top + y)
-                    = static_cast<image::intensity_t>(rescale(val, *minmax.first, *minmax.second, 0, 255));
+                    = static_cast<image::intensity_t>(rescale(val, minmax.first, minmax.second, 0, 255));
             }
         }
     }

@@ -110,8 +110,8 @@ namespace tiny_cnn {
         }
 
         void shuffle() {
-            for (auto& m : mask_)
-                m = bernoulli(1.0 - dropout_rate_);
+			for (std::vector<uint8_t>::iterator m = mask_.begin(); m != mask_.end(); m++)
+				*m = bernoulli(1.0 - dropout_rate_);
         }
 
         void end_batch() {

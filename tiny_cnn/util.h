@@ -54,7 +54,7 @@ typedef std::vector<float_t> vec_t;
 class nn_error : public std::exception {
 public:
     explicit nn_error(const std::string& msg) : msg_(msg) {}
-    const char* what() const throw() override { return msg_.c_str(); }
+    const char* what() const throw() { return msg_.c_str(); }
 private:
     std::string msg_;
 };
@@ -82,27 +82,45 @@ Stream& operator << (Stream& s, const index3d<T>& d) {
     return s;
 }
 
-template<typename T> inline
-typename std::enable_if<std::is_integral<T>::value, T>::type
-uniform_rand(T min, T max) {
-    // avoid gen(0) for MSVC known issue
-    // https://connect.microsoft.com/VisualStudio/feedback/details/776456
-    static std::mt19937 gen(1);
-    std::uniform_int_distribution<T> dst(min, max);
-    return dst(gen);
+//C++ 11 RandomGen
+//template<typename T> inline
+//typename std::enable_if<std::is_integral<T>::value, T>::type
+//uniform_rand(T min, T max) {
+//    // avoid gen(0) for MSVC known issue
+//    // https://connect.microsoft.com/VisualStudio/feedback/details/776456
+//    static std::mt19937 gen(1);
+//    std::uniform_int_distribution<T> dst(min, max);
+//    return dst(gen);
+//}
+
+inline int _bigrand()
+{
+#if (INT_MAX / (RAND_MAX + 1) > RAND_MAX)
+	return rand() * (RAND_MAX + 1) + rand();
+#else
+	return rand();
+#endif
+}
+
+struct _init_rand {
+	_init_rand() {
+		srand((unsigned int)time(NULL));
+	}
+};
+_init_rand _init_rand_;
+
+inline int uniform_rand_int(int min, int max) {
+	return (_bigrand() % (max - min + 1)) + min;
 }
 
 template<typename T> inline
-typename std::enable_if<std::is_floating_point<T>::value, T>::type
-uniform_rand(T min, T max) {
-    static std::mt19937 gen(1);
-    std::uniform_real_distribution<T> dst(min, max);
-    return dst(gen);
+T uniform_rand(T min, T max) {
+	return (max - min) * (T)rand() / (T)RAND_MAX + min;
 }
 
 template<typename Container>
 inline int uniform_idx(const Container& t) {
-    return uniform_rand(0, (int) t.size() - 1);
+    return uniform_rand_int(0, (int) t.size() - 1);
 }
 
 inline bool bernoulli(double p) {
@@ -221,20 +239,58 @@ void for_(bool /*parallelize*/, size_t begin, size_t end, Func f) { // ignore pa
 
 #endif
 
-class task_group {
+template<typename paramType, class cbClass>
+class task_item
+{
 public:
-    template<typename Func>
-    void run(Func f) {
-        functions_.push_back(f);
-    }
-
-    void wait() {
-        for (auto f : functions_)
-            f();
-    }
-private:
-    std::vector<std::function<void()>> functions_;
+	typedef void(cbClass::*taskfunc) (paramType p);
+	taskfunc func;
+	paramType param;
+	task_item(taskfunc func, paramType param) {
+		this->func = func;
+		this->param = param;
+	}
 };
+
+//task_group without lambda
+//FIXME: the usage is incompatible with the class when using TBB support
+template<typename paramType,class cbClass>
+class task_group {
+	typedef void(cbClass::*taskfunc) (paramType);
+private:
+	std::vector<task_item<paramType, cbClass>> functions_;
+public:
+	cbClass* thiz;
+	task_group(cbClass* thiz) {
+		this->thiz = thiz;
+	}
+	void run(taskfunc f, paramType param) {
+		functions_.push_back(task_item<paramType, cbClass>(f, param));
+	}
+	void wait() {
+		for (unsigned int i = 0; i < functions_.size(); i++)
+		{
+			taskfunc funcptr = functions_.at(i).func;
+			(thiz->*funcptr)(functions_.at(i).param);
+		}
+
+	}
+};
+
+//origin
+//class task_group {
+//public:
+//	template<typename Func>
+//	void run(Func f) {
+//		functions_.push_back(f);
+//	}
+//	void wait() {
+//		for (auto f : functions_)
+//			f();
+//}
+//private:
+//	std::vector<std::function<void()>> functions_;
+//};
 
 #endif // CNN_USE_TBB
 
@@ -286,8 +342,8 @@ inline bool isfinite(float_t x) {
 }
 
 template <typename Container> inline bool has_infinite(const Container& c) {
-    for (auto v : c)
-        if (!isfinite(v)) return true;
+	for (Container::const_iterator i = c.begin(); i != c.end();i++)
+        if (!isfinite(*i)) return true;
     return false;
 }
 

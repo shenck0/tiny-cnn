@@ -87,29 +87,32 @@ public:
     image weight_to_image() const {
         image img;
         const layer_size_t border_width = 1;
-        const auto pitch = window_size_ + border_width;
-        const auto width = out_.depth_ * pitch + border_width;
-        const auto height = in_.depth_ * pitch + border_width;
+        const size_t pitch = window_size_ + border_width;
+        const size_t width = out_.depth_ * pitch + border_width;
+        const size_t height = in_.depth_ * pitch + border_width;
         const image::intensity_t bg_color = 255;
 
         img.resize(width, height);
         img.fill(bg_color);
 
-        auto minmax = std::minmax_element(this->W_.begin(), this->W_.end());
+		std::pair<double, double> minmax;
+		minmax.first = *std::min_element(vec.begin(), vec.end());
+		minmax.second = *std::max_element(vec.begin(), vec.end());
+		//minmax = std::minmax_element(this->W_.begin(), this->W_.end());
 
         for (layer_size_t r = 0; r < in_.depth_; ++r) {
             for (layer_size_t c = 0; c < out_.depth_; ++c) {
                 if (!connection_.is_connected(c, r)) continue;
 
-                const auto top = r * pitch + border_width;
-                const auto left = c * pitch + border_width;
+                const size_t top = r * pitch + border_width;
+                const size_t left = c * pitch + border_width;
 
                 for (layer_size_t y = 0; y < window_size_; ++y) {
                     for (layer_size_t x = 0; x < window_size_; ++x) {
                         const float_t w = W_[weight_.get_index(x, y, c * in_.depth_ + r)];
 
                         img.at(left + x, top + y)
-                            = static_cast<image::intensity_t>(rescale(w, *minmax.first, *minmax.second, 0, 255));
+                            = static_cast<image::intensity_t>(rescale(w, minmax.first, minmax.second, 0, 255));
                     }
                 }
             }
@@ -117,9 +120,9 @@ public:
         return img;
     }
 
-    index3d<layer_size_t> in_shape() const override { return in_; }
-    index3d<layer_size_t> out_shape() const override { return out_; }
-    std::string layer_type() const override { return "conv"; }
+    index3d<layer_size_t> in_shape() const { return in_; }
+    index3d<layer_size_t> out_shape() const { return out_; }
+    std::string layer_type() const { return "conv"; }
 
 private:
     void init_connection(const connection_table& table) {

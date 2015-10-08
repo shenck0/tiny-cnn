@@ -55,9 +55,9 @@ public:
         return vec2image(output_[worker_index], out_);
     }
 
-    index3d<layer_size_t> in_shape() const override { return in_; }
-    index3d<layer_size_t> out_shape() const override { return out_; }
-    std::string layer_type() const override { return "ave-pool"; }
+    index3d<layer_size_t> in_shape() const { return in_; }
+    index3d<layer_size_t> out_shape() const { return out_; }
+    std::string layer_type() const { return "ave-pool"; }
 
 private:
     void init_connection(layer_size_t pooling_size) {

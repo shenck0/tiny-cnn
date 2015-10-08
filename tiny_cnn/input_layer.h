@@ -37,11 +37,11 @@ public:
 
     input_layer() : Base(0, 0, 0, 0) {}
 
-    layer_size_t in_size() const override { return next_ ? next_->in_size(): static_cast<layer_size_t>(0); }
+    layer_size_t in_size() const { return next_ ? next_->in_size(): static_cast<layer_size_t>(0); }
 
-    index3d<layer_size_t> in_shape() const override { return next_ ? next_->in_shape() : index3d<layer_size_t>(0, 0, 0); }
-    index3d<layer_size_t> out_shape() const override { return next_ ? next_->out_shape() : index3d<layer_size_t>(0, 0, 0); }
-    std::string layer_type() const override { return next_ ? next_->layer_type() : "input"; }
+    index3d<layer_size_t> in_shape() const { return next_ ? next_->in_shape() : index3d<layer_size_t>(0, 0, 0); }
+    index3d<layer_size_t> out_shape() const { return next_ ? next_->out_shape() : index3d<layer_size_t>(0, 0, 0); }
+    std::string layer_type() const { return next_ ? next_->layer_type() : "input"; }
 
     const vec_t& forward_propagation(const vec_t& in, size_t index) {
         output_[index] = in;
@@ -56,15 +56,15 @@ public:
         return current_delta2;
     }
 
-    size_t connection_size() const override {
+    size_t connection_size() const {
         return in_size_;
     }
 
-    size_t fan_in_size() const override {
+    size_t fan_in_size() const {
         return 1;
     }
 
-    size_t fan_out_size() const override {
+    size_t fan_out_size() const {
         return 1;
     }
 };

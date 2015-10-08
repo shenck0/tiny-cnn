@@ -57,27 +57,27 @@ struct result {
     template <typename Char, typename CharTraits>
     void print_detail(std::basic_ostream<Char, CharTraits>& os) {
         print_summary(os);
-        auto all_labels = labels();
+		std::set<label_t> all_labels = labels();
 
         os << std::setw(5) << "*" << " ";
-        for (auto c : all_labels) 
-            os << std::setw(5) << c << " ";
+		for (std::set<label_t>::iterator c = all_labels.begin(); c != all_labels.end(); c++)
+            os << std::setw(5) << *c << " ";
         os << std::endl;
 
-        for (auto r : all_labels) {
-            os << std::setw(5) << r << " ";           
-            for (auto c : all_labels) 
-                os << std::setw(5) << confusion_matrix[r][c] << " ";
+		for (std::set<label_t>::iterator r = all_labels.begin(); r != all_labels.end(); r++){
+            os << std::setw(5) << *r << " ";       
+			for (std::set<label_t>::iterator c = all_labels.begin(); c != all_labels.end(); c++)
+                os << std::setw(5) << confusion_matrix[*r][*c] << " ";
             os << std::endl;
         }
     }
 
     std::set<label_t> labels() const {
         std::set<label_t> all_labels;
-        for (auto r : confusion_matrix) {
-            all_labels.insert(r.first);
-            for (auto c : r.second)
-                all_labels.insert(c.first);
+		for (std::map<label_t, std::map<label_t, int> >::const_iterator r = confusion_matrix.begin(); r != confusion_matrix.end(); r++){
+            all_labels.insert((*r).first);
+			for (std::map<label_t, int>::const_iterator c = (*r).second.begin(); c != (*r).second.end(); c++)
+                all_labels.insert((*c).first);
         }
         return all_labels;
     }
@@ -187,12 +187,12 @@ public:
     }
 
     void save(std::ostream& os) const {
-        auto l = layers_.head();
+		layer_base* l = layers_.head();
         while (l) { l->save(os); l = l->next(); }
     }
 
     void load(std::istream& is) {
-        auto l = layers_.head();
+		layer_base* l = layers_.head();
         while (l) { l->load(is); l = l->next(); }
     }
 
@@ -206,7 +206,7 @@ public:
         std::vector<vec_t> v;
         label2vector(t, data_size, &v);
 
-        auto current = layers_.head();
+		layer_base* current = layers_.head();
 
         while ((current = current->next()) != 0) { // ignore first input layer
             vec_t& w = current->weight();
@@ -238,8 +238,8 @@ public:
 
     template <typename L, typename O>
     bool has_same_weights(const network<L, O>& others, float_t eps) const {
-        auto h1 = layers_.head();
-        auto h2 = others.layers_.head();
+		layer_base* h1 = layers_.head();
+		layer_base* h2 = others.layers_.head();
 
         while (h1 && h2) {
             if (!h1->has_same_weights(*h2, eps))
@@ -269,7 +269,7 @@ public:
 
     template <typename WeightInit>
     network& weight_init(const WeightInit& f) {
-        auto ptr = new WeightInit(f);
+		WeightInit ptr = new WeightInit(f);
         for (size_t i = 0; i < depth(); i++)
           layers_[i]->weight_init(ptr);
         return *this;
@@ -277,7 +277,7 @@ public:
 
     template <typename BiasInit>
     network& bias_init(const BiasInit& f) { 
-        auto ptr = new BiasInit(f);
+		BiasInit ptr = new BiasInit(f);
         for (size_t i = 0; i < depth(); i++)
             layers_[i]->bias_init(ptr);
         return *this;
@@ -312,10 +312,31 @@ private:
         } else {
             train_onebatch(in, t, size);
         }
-    }   
+    } 
+
+	//for expanding lambda expression in train_onebatch
+	struct _bp_task_env_
+	{
+		int i;
+		int num;
+		const vec_t* in;
+		const vec_t* t;
+		_bp_task_env_() { }
+		_bp_task_env_(int i, int num, const vec_t* in, const vec_t* t) {
+			this->i = i;
+			this->num = num;
+			this->in = in;
+			this->t = t;
+		}
+	};
+
+	void _lambda_exp_in_train_onebatch_(_bp_task_env_ p) {
+		for (int j = 0; j < p.num; j++) 
+			bprop(fprop(p.in[j], p.i), p.t[j], p.i);
+	}
 
     void train_onebatch(const vec_t* in, const vec_t* t, int batch_size) {
-        task_group g;
+        task_group<_bp_task_env_, network> g(this);
         int num_tasks = batch_size < CNN_TASK_SIZE ? 1 : CNN_TASK_SIZE;
         int data_per_thread = batch_size / num_tasks;
         int remaining = batch_size;
@@ -324,9 +345,8 @@ private:
         for (int i = 0; i < num_tasks; i++) {
             int num = i == num_tasks - 1 ? remaining : data_per_thread;
 
-            g.run([=]{
-                for (int j = 0; j < num; j++) bprop(fprop(in[j], i), t[j], i);
-            });
+			_bp_task_env_ p(i, num, in, t);
+			g.run(&network::_lambda_exp_in_train_onebatch_,p );
 
             remaining -= num;
             in += num;

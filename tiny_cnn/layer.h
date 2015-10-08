@@ -52,7 +52,7 @@ public:
 	}
 
     layer_base(layer_size_t in_dim, layer_size_t out_dim, size_t weight_dim, size_t bias_dim)
-        : parallelize_(true), next_(nullptr), prev_(nullptr),
+        : parallelize_(true), next_(NULL), prev_(NULL),
           weight_init_(new weight_init::xavier()),
           bias_init_(new weight_init::constant(0.0)) {
         set_size(in_dim, out_dim, weight_dim, bias_dim);
@@ -81,8 +81,8 @@ public:
     }
 
     void divide_hessian(int denominator) {
-        for (auto& w : Whessian_) w /= denominator;
-        for (auto& b : bhessian_) b /= denominator;
+		for (vec_t::iterator i = Whessian_.begin(); i != Whessian_.end(); i++) *i /= denominator;
+		for (vec_t::iterator i = bhessian_.begin(); i != bhessian_.end(); i++) *i /= denominator;
     }
 
     /////////////////////////////////////////////////////////////////////////
@@ -145,13 +145,13 @@ public:
     // save/load
     virtual void save(std::ostream& os) const {
         if (is_exploded()) throw nn_error("failed to save weights because of infinite weight");
-        for (auto w : W_) os << w << " ";
-        for (auto b : b_) os << b << " ";
+		for (vec_t::const_iterator i = W_.begin(); i != W_.end();i++ ) os << *i << " ";
+		for (vec_t::const_iterator i = b_.begin(); i != b_.end(); i++) os << *i << " ";
     }
 
     virtual void load(std::istream& is) {
-        for (auto& w : W_) is >> w;
-        for (auto& b : b_) is >> b;
+		for (vec_t::iterator i = W_.begin(); i != W_.end(); i++) is >> *i;
+		for (vec_t::iterator i = b_.begin(); i != b_.end(); i++) is >> *i;
     }
 
     /////////////////////////////////////////////////////////////////////////
@@ -274,11 +274,11 @@ private:
         bhessian_.resize(bias_dim);
         prev_delta2_.resize(in_dim);
 
-        for (auto& o : output_)     o.resize(out_dim);
-        for (auto& a : a_)          a.resize(out_dim);
-        for (auto& p : prev_delta_) p.resize(in_dim);
-        for (auto& dw : dW_) dw.resize(weight_dim);
-        for (auto& db : db_) db.resize(bias_dim);
+		for (int i = 0; i < CNN_TASK_SIZE; i++) output_[i].resize(out_dim);
+		for (int i = 0; i < CNN_TASK_SIZE; i++) a_[i].resize(out_dim);
+		for (int i = 0; i < CNN_TASK_SIZE; i++) prev_delta_[i].resize(in_dim);
+		for (int i = 0; i < CNN_TASK_SIZE; i++) dW_[i].resize(weight_dim);
+		for (int i = 0; i < CNN_TASK_SIZE; i++) db_[i].resize(bias_dim);
     }
 };
 
@@ -288,7 +288,7 @@ public:
     layer(layer_size_t in_dim, layer_size_t out_dim, size_t weight_dim, size_t bias_dim)
         : layer_base(in_dim, out_dim, weight_dim, bias_dim) {}
 
-    activation::function& activation_function() override { return h_; }
+    activation::function& activation_function() { return h_; }
 //protected:
     Activation h_;
 };

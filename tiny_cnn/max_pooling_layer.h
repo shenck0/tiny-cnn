@@ -51,27 +51,27 @@ public:
         init_connection(pooling_size);
     }
 
-    size_t fan_in_size() const override {
+    size_t fan_in_size() const {
         return out2in_[0].size();
     }
 
-    size_t fan_out_size() const override {
+    size_t fan_out_size() const {
         return 1;
     }
 
-    size_t connection_size() const override {
+    size_t connection_size() const {
         return out2in_[0].size() * out2in_.size();
     }
 
     virtual const vec_t& forward_propagation(const vec_t& in, size_t index) {
 		FOR_I_EXP(out_size_, {
-            const auto& in_index = out2in_[i];
+            const std::vector<int>& in_index = out2in_[i];
             float_t max_value = std::numeric_limits<float_t>::lowest();
                 
-            for (auto j : in_index) {
-                if (in[j] > max_value) {
-                    max_value = in[j];
-                    out2inmax_[i] = j;
+			for (std::vector<int>::const_iterator j = in_index.begin(); j != in_index.end();j++) {
+                if (in[*j] > max_value) {
+                    max_value = in[*j];
+                    out2inmax_[i] = *j;
                 }
             }
             output_[index][i] = max_value;
@@ -106,9 +106,9 @@ public:
         return vec2image(output_[worker_index], out_);
     }
 
-    index3d<layer_size_t> in_shape() const override { return in_; }
-    index3d<layer_size_t> out_shape() const override { return out_; }
-    std::string layer_type() const override { return "max-pool"; }
+    index3d<layer_size_t> in_shape() const { return in_; }
+    index3d<layer_size_t> out_shape() const { return out_; }
+    std::string layer_type() const { return "max-pool"; }
 
 private:
     std::vector<std::vector<int> > out2in_; // mapping out => in (1:N)

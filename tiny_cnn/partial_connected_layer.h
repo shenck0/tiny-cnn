@@ -45,29 +45,29 @@ public:
           weight2io_(weight_dim), out2wi_(out_dim), in2wo_(in_dim), bias2out_(bias_dim), out2bias_(out_dim),
           scale_factor_(scale_factor) {}
 
-    size_t param_size() const override {
+    size_t param_size() const {
         size_t total_param = 0;
-        for (auto w : weight2io_)
-            if (w.size() > 0) total_param++;
-        for (auto b : bias2out_)
-            if (b.size() > 0) total_param++;
+		for (std::vector<io_connections>::const_iterator w = weight2io_.begin(); w != weight2io_.end(); w++)
+            if ((*w).size() > 0) total_param++;
+		for (std::vector<std::vector<layer_size_t> >::const_iterator b = bias2out_.begin(); b != bias2out_.end(); b++)
+            if ((*b).size() > 0) total_param++;
         return total_param;
     }
 
-    size_t connection_size() const override {
+    size_t connection_size() const {
         size_t total_size = 0;
-        for (auto io : weight2io_)
-            total_size += io.size();
-        for (auto b : bias2out_)
-            total_size += b.size();
+		for (std::vector<io_connections>::const_iterator io = weight2io_.begin(); io != weight2io_.end(); io++)
+            total_size += (*io).size();
+		for (std::vector<std::vector<layer_size_t> >::const_iterator b = bias2out_.begin(); b != bias2out_.end(); b++)
+            total_size += (*b).size();
         return total_size;
     }
 
-    size_t fan_in_size() const override {
+    size_t fan_in_size() const {
         return max_size(out2wi_);
     }
 
-    size_t fan_out_size() const override {
+    size_t fan_out_size() const {
         return max_size(in2wo_);
     }
 
@@ -82,16 +82,15 @@ public:
         bias2out_[bias_index].push_back(output_index);
     }
 
-    const vec_t& forward_propagation(const vec_t& in, size_t index) override {
+    const vec_t& forward_propagation(const vec_t& in, size_t index) {
         vec_t& a = a_[index];
      
 		FOR_I_EXP(out_size_, {
             const wi_connections& connections = out2wi_[i];
 
             a[i] = 0.0;
-
-            for (auto connection : connections)// 13.1%
-                a[i] += W_[connection.first] * in[connection.second]; // 3.2%
+			for (wi_connections::const_iterator connection = connections.begin(); connection != connections.end(); connection++)
+                a[i] += W_[(*connection).first] * in[(*connection).second]; // 3.2%
 
             a[i] *= scale_factor_;
             a[i] += b_[out2bias_[i]];
@@ -113,8 +112,8 @@ public:
             const wo_connections& connections = in2wo_[i];
             float_t delta = 0.0;
 
-            for (auto connection : connections) 
-                delta += W_[connection.first] * current_delta[connection.second]; // 40.6%
+			for (wo_connections::const_iterator connection = connections.begin(); connection != connections.end(); connection++)
+                delta += W_[(*connection).first] * current_delta[(*connection).second]; // 40.6%
 
             prev_delta[i] = delta * scale_factor_ * prev_h.df(prev_out[i]); // 2.1%
         });
@@ -123,8 +122,8 @@ public:
             const io_connections& connections = weight2io_[i];
             float_t diff = 0.0;
 
-            for (auto connection : connections) // 11.9%
-                diff += prev_out[connection.first] * current_delta[connection.second];
+			for (io_connections::const_iterator connection = connections.begin(); connection != connections.end(); connection++)
+                diff += prev_out[(*connection).first] * current_delta[(*connection).second];
 
             dW_[index][i] += diff * scale_factor_;
         });
@@ -133,8 +132,8 @@ public:
             const std::vector<layer_size_t>& outs = bias2out_[i];
             float_t diff = 0.0;
 
-            for (auto o : outs)
-                diff += current_delta[o];    
+			for (std::vector<layer_size_t>::const_iterator o = outs.begin(); o != outs.end(); o++)
+                diff += current_delta[*o];
 
             db_[index][i] += diff;
         } 
@@ -150,8 +149,8 @@ public:
             const io_connections& connections = weight2io_[i];
             float_t diff = 0.0;
 
-            for (auto connection : connections)
-                diff += sqr(prev_out[connection.first]) * current_delta2[connection.second];
+			for (io_connections::const_iterator connection = connections.begin(); connection != connections.end(); connection++)
+                diff += sqr(prev_out[(*connection).first]) * current_delta2[(*connection).second];
 
             diff *= sqr(scale_factor_);
             Whessian_[i] += diff;
@@ -161,8 +160,8 @@ public:
             const std::vector<layer_size_t>& outs = bias2out_[i];
             float_t diff = 0.0;
 
-            for (auto o : outs)
-                diff += current_delta2[o];    
+			for (std::vector<layer_size_t>::const_iterator o = outs.begin(); o != outs.end(); o++)
+                diff += current_delta2[*o];
 
             bhessian_[i] += diff;
         }
@@ -171,8 +170,8 @@ public:
             const wo_connections& connections = in2wo_[i];
             prev_delta2_[i] = 0.0;
 
-            for (auto connection : connections) 
-                prev_delta2_[i] += sqr(W_[connection.first]) * current_delta2[connection.second];
+			for (wo_connections::const_iterator connection = connections.begin(); connection != connections.end(); connection++)
+                prev_delta2_[i] += sqr(W_[(*connection).first]) * current_delta2[(*connection).second];
 
             prev_delta2_[i] *= sqr(scale_factor_ * prev_h.df(prev_out[i]));
         }

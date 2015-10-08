@@ -43,14 +43,16 @@ struct optimizer {
 // helper class to hold N values for each weight
 template <typename value_t, int N, bool usesHessian = false>
 struct stateful_optimizer : public optimizer<usesHessian> {
-    void reset() override {
-        for (auto& e : E_) e.clear();
+    void reset() {
+		for (int i = 0; i < N; i++)
+			E_[i].clear();
+        //for (auto& e : E_) e.clear();
     }
 
 protected:
     template <int Index>
     std::vector<value_t>& get(const vec_t& key) {
-        static_assert(Index < N, "index out of range");
+        //static_assert(Index < N, "index out of range");
         if (E_[Index][&key].empty())
             E_[Index][&key].resize(key.size(), value_t());
         return E_[Index][&key];

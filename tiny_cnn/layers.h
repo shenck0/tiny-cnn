@@ -36,10 +36,10 @@ public:
 
 	~layers() {
 		//imlpement destructor because we remove all "shared_ptr" (C++ 11 feature)
-		// warning: layers in a network will be released when network was released
-		auto l = this->head();
+		// warning: layers in a network will be released when network was destroyed
+		layer_base* l = this->head();
 		while (l) { 
-			auto todel = l;
+			layer_base* todel = l;
 			l = l->next();
 			delete todel;
 		}
@@ -80,30 +80,30 @@ public:
     }
 
     void init_weight() {
-        for (auto pl : layers_)
-            pl->init_weight();
+		for (std::vector<layer_base*>::iterator pl = layers_.begin(); pl != layers_.end();pl++ )
+            (*pl)->init_weight();
     }
 
     bool is_exploded() const {
-        for (auto pl : layers_)
-            if (pl->is_exploded()) return true;
+		for (std::vector<layer_base*>::const_iterator pl = layers_.begin(); pl != layers_.end(); pl++)
+            if ((*pl)->is_exploded()) return true;
         return false;
     }
 
     void divide_hessian(int denominator) {
-        for (auto pl : layers_)
-            pl->divide_hessian(denominator);
+		for (std::vector<layer_base*>::iterator pl = layers_.begin(); pl != layers_.end(); pl++)
+            (*pl)->divide_hessian(denominator);
     }
 
     template <typename Optimizer>
     void update_weights(Optimizer *o, size_t worker_size, size_t batch_size) {
-        for (auto pl : layers_)
-            pl->update_weight(o, worker_size, batch_size);
+		for (std::vector<layer_base*>::iterator pl = layers_.begin(); pl != layers_.end(); pl++)
+            (*pl)->update_weight(o, worker_size, batch_size);
     }
     
     void set_parallelize(bool parallelize) {
-        for (auto pl : layers_)
-            pl->set_parallelize(parallelize);
+		for (std::vector<layer_base*>::iterator pl = layers_.begin(); pl != layers_.end(); pl++)
+            (*pl)->set_parallelize(parallelize);
     }
 
     // get depth(number of layers) of networks

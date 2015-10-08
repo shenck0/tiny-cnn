@@ -59,13 +59,13 @@ public:
     xavier() : scalable((float_t)6.0) {}
     explicit xavier(float_t value) : scalable(value) {}
 
-    void fill(vec_t *weight, layer_size_t fan_in, layer_size_t fan_out) override {
+    void fill(vec_t *weight, layer_size_t fan_in, layer_size_t fan_out) {
         const float_t weight_base = std::sqrt(scale_ / (fan_in + fan_out));
 
         uniform_rand(weight->begin(), weight->end(), -weight_base, weight_base);     
     }
 
-    virtual xavier* clone() const override { return new xavier(scale_); }
+    virtual xavier* clone() const { return new xavier(scale_); }
 };
 
 /**
@@ -88,7 +88,7 @@ public:
         uniform_rand(weight->begin(), weight->end(), -weight_base, weight_base);
     }
 
-    virtual lecun* clone() const override { return new lecun(scale_); }
+    virtual lecun* clone() const { return new lecun(scale_); }
 };
 
 class constant : public scalable {
@@ -103,7 +103,7 @@ public:
         std::fill(weight->begin(), weight->end(), scale_);
     }
 
-    virtual constant* clone() const override { return new constant(scale_); }
+    virtual constant* clone() const { return new constant(scale_); }
 };
 
 } // namespace weight_init
