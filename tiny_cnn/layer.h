@@ -231,8 +231,8 @@ protected:
     vec_t Whessian_; // diagonal terms of hessian matrix
     vec_t bhessian_;
     vec_t prev_delta2_; // d^2E/da^2
-    weight_init::function* weight_init_ = NULL;
-    weight_init::function* bias_init_ = NULL;
+    weight_init::function* weight_init_;
+    weight_init::function* bias_init_;
 
 private:
 

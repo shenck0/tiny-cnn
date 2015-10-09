@@ -83,7 +83,7 @@ public:
     void fill(vec_t *weight, layer_size_t fan_in, layer_size_t fan_out) {
         CNN_UNREFERENCED_PARAMETER(fan_out);
 
-        const float_t weight_base = scale_ / std::sqrt(fan_in);
+        const float_t weight_base = scale_ / std::sqrt((float_t)fan_in);
 
         uniform_rand(weight->begin(), weight->end(), -weight_base, weight_base);
     }

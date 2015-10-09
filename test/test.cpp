@@ -27,7 +27,7 @@
 #include "picotest.h"
 #include "tiny_cnn.h"
 #include <boost/filesystem.hpp>
-#include <boost/program_options.hpp>
+//#include <boost/progam_options.hpp>
 
 using namespace tiny_cnn;
 using namespace tiny_cnn::activation;
@@ -50,8 +50,9 @@ TEST(convolutional, fprop) {
     {
         const vec_t& out = l.forward_propagation(in, 0);
 
-        for (auto o: out)
-            EXPECT_DOUBLE_EQ(o, (tiny_cnn::float_t)0.5);
+		for (vec_t::const_iterator o = out.begin(); o != out.end(); o++)
+//        for (auto o: out)
+            EXPECT_DOUBLE_EQ(*o, (tiny_cnn::float_t)0.5);
 
     }
 
@@ -524,8 +525,8 @@ TEST(read_write, network)
 
     vec_t in(32*32, 0.0);
 
-    auto res1 = n1.predict(in);
-    auto res2 = n2.predict(in);
+	vec_t res1 = n1.predict(in);
+	vec_t res2 = n2.predict(in);
 
     for (int i = 0; i < 10; i++) {
         tiny_cnn::float_t eps = std::abs(res1[i]) * 1e-5;

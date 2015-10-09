@@ -27,7 +27,8 @@
 #pragma once
 #include <vector>
 #include <fstream>
-#include <cstdint>
+//#include <cstdint>
+#include <stdint.h>
 #include <algorithm>
 
 namespace tiny_cnn {
@@ -43,7 +44,7 @@ public:
 
     image(const image& rhs) : width_(rhs.width_), height_(rhs.height_), data_(rhs.data_) {}
 
-    image(const image&& rhs) : width_(rhs.width_), height_(rhs.height_), data_(std::move(rhs.data_)) {}
+    //image(const image&& rhs) : width_(rhs.width_), height_(rhs.height_), data_(std::move(rhs.data_)) {}
 
     image& operator = (const image& rhs) {
         width_ = rhs.width_;
@@ -52,12 +53,12 @@ public:
         return *this;
     }
 
-    image& operator = (const image&& rhs) {
+    /*image& operator = (const image&& rhs) {
         width_ = rhs.width_;
         height_ = rhs.height_;
         data_ = std::move(rhs.data_);
         return *this;
-    }
+    }*/
 
     void write(const std::string& path) const { // WARNING: This is OS dependent (writes of bytes with reinterpret_cast depend on endianness)
         std::ofstream ofs(path.c_str(), std::ios::binary | std::ios::out);

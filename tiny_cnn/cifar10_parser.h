@@ -27,7 +27,8 @@
 #pragma once
 #include "util.h"
 #include <fstream>
-#include <cstdint>
+//#include <cstdint>
+#include <stdint.h>
 #include <algorithm>
 
 #define CIFAR10_IMAGE_DEPTH (3)

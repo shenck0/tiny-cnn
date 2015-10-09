@@ -72,9 +72,13 @@ public:
     }
 
     void connect_weight(layer_size_t input_index, layer_size_t output_index, layer_size_t weight_index) {
-        weight2io_[weight_index].emplace_back(input_index, output_index);
+		typedef std::pair<unsigned short, unsigned short> t_pair;
+        /*weight2io_[weight_index].emplace_back(input_index, output_index);
         out2wi_[output_index].emplace_back(weight_index, input_index);
-        in2wo_[input_index].emplace_back(weight_index, output_index);
+        in2wo_[input_index].emplace_back(weight_index, output_index);*/
+		weight2io_[weight_index].push_back(t_pair(input_index, output_index));
+		out2wi_[output_index].push_back(t_pair(weight_index, input_index));
+		in2wo_[input_index].push_back(t_pair(weight_index, output_index));
     }
 
     void connect_bias(layer_size_t bias_index, layer_size_t output_index) {

@@ -27,12 +27,13 @@
 #pragma once
 #include <vector>
 #include <functional>
-#include <random>
-#include <type_traits>
+//#include <random>
+//#include <type_traits>
 #include <limits>
 #include <cassert>
 #include <cstdio>
 #include <cstdarg>
+#include <time.h>
 
 #ifdef CNN_USE_TBB
 #ifndef NOMINMAX

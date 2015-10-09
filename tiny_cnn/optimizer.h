@@ -26,7 +26,7 @@
 */
 #pragma once
 #include "util.h"
-#include <unordered_map>
+#include <map>
 
 namespace tiny_cnn {
 
@@ -57,7 +57,7 @@ protected:
             E_[Index][&key].resize(key.size(), value_t());
         return E_[Index][&key];
     }
-    std::unordered_map<const vec_t*, std::vector<value_t>> E_[N];
+    std::map<const vec_t*, std::vector<value_t>> E_[N];
 };
 
 /**

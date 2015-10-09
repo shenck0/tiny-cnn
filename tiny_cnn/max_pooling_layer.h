@@ -63,21 +63,22 @@ public:
         return out2in_[0].size() * out2in_.size();
     }
 
-    virtual const vec_t& forward_propagation(const vec_t& in, size_t index) {
+	virtual const vec_t& forward_propagation(const vec_t& in, size_t index) {
 		FOR_I_EXP(out_size_, {
-            const std::vector<int>& in_index = out2in_[i];
-            float_t max_value = std::numeric_limits<float_t>::lowest();
-                
-			for (std::vector<int>::const_iterator j = in_index.begin(); j != in_index.end();j++) {
-                if (in[*j] > max_value) {
-                    max_value = in[*j];
-                    out2inmax_[i] = *j;
-                }
-            }
-            output_[index][i] = max_value;
-        });
-        return next_ ? next_->forward_propagation(output_[index], index) : output_[index];
-    }
+			const std::vector<int>& in_index = out2in_[i];
+		const float_t FLOAT_T_LOWEST = -std::numeric_limits<double>::max();
+		float_t max_value = FLOAT_T_LOWEST;//std::numeric_limits<float_t>::lowest();
+
+		for (std::vector<int>::const_iterator j = in_index.begin(); j != in_index.end(); j++) {
+			if (in[*j] > max_value) {
+				max_value = in[*j];
+				out2inmax_[i] = *j;
+			}
+		}
+		output_[index][i] = max_value;
+		});
+		return next_ ? next_->forward_propagation(output_[index], index) : output_[index];
+	}
 
     virtual const vec_t& back_propagation(const vec_t& current_delta, size_t index) {
         const vec_t& prev_out = prev_->output(index);

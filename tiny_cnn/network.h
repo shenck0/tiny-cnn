@@ -294,7 +294,8 @@ private:
         vec->reserve(num);
         for (int i = 0; i < num; i++) {
             assert(t[i] < outdim);
-            vec->emplace_back(outdim, target_value_min());
+            //vec->emplace_back(outdim, target_value_min());
+			vec->push_back(vec_t(outdim, target_value_min()));
             vec->back()[t[i]] = target_value_max();
         }
     }
@@ -514,11 +515,12 @@ network<loss_func, algorithm> make_mlp(const std::vector<int>& units) {
     return make_mlp<loss_func, algorithm, activation>(units.begin(), units.end());
 }
 
-template <typename L, typename O, typename Layer>
-network<L, O>& operator << (network<L, O>& n, const Layer&& l) {
-    n.add(new Layer(l));
-    return n;
-}
+//remove support for rvalue
+//template <typename L, typename O, typename Layer>
+//network<L, O>& operator << (network<L, O>& n, const Layer&& l) {
+//    n.add(new Layer(l));
+//    return n;
+//}
 
 template <typename L, typename O, typename Layer>
 network<L, O>& operator << (network<L, O>& n, Layer& l) {
