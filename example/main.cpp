@@ -36,12 +36,14 @@ void sample1_convnet();
 void sample2_mlp();
 void sample3_dae();
 void sample4_dropout();
+void test_create_big_network();
 
 using namespace tiny_cnn;
 using namespace tiny_cnn::activation;
 
 int main(void) {
-    sample1_convnet();
+    //sample1_convnet();
+	test_create_big_network();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -268,4 +270,22 @@ void sample4_dropout()
     // change context to enable all hidden-units
     //f1.set_context(dropout::test_phase);
     //std::cout << res.num_success << "/" << res.num_total << std::endl;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void test_create_big_network()
+{
+	std::cout << "start creating" << std::endl;
+	network<mse, gradient_descent_levenberg_marquardt> nn;
+	nn << convolutional_layer<tan_h>(160, 160, 5, 1, 15)
+		<< average_pooling_layer<tan_h>(156, 156, 15, 2)
+		<< convolutional_layer<tan_h>(78, 78, 7, 15, 60)
+		<< average_pooling_layer<tan_h>(72, 72, 60, 3)
+		<< convolutional_layer<tan_h>(24, 24, 3, 60, 80)
+		<< max_pooling_layer<tan_h>(22, 22, 80, 2)
+		<< convolutional_layer<tan_h>(11, 11, 3, 80, 100)
+		<< fully_connected_layer<tan_h>(8100, 559);
+	std::cout << "network created" << std::endl;
+	getchar();
 }

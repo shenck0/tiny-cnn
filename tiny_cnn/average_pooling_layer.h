@@ -49,6 +49,9 @@ public:
             pooling_size_mismatch(in_width, in_height, pooling_size);
 
         init_connection(pooling_size);
+#ifdef CNN_USE_SHRINK_LAYER
+		this->shrink_after_init();
+#endif
     }
 
     image<> output_to_image(size_t worker_index = 0) const {

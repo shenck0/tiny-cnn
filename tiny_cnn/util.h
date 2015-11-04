@@ -47,7 +47,7 @@
 namespace tiny_cnn {
 
 typedef double float_t;
-typedef unsigned short layer_size_t;
+typedef int layer_size_t;
 typedef size_t label_t;
 typedef std::vector<float_t> vec_t;
 

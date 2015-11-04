@@ -55,3 +55,9 @@
 #else
 #define CNN_TASK_SIZE 8
 #endif
+
+/**
+* Use a slower implement of partial_connected_layer.h to reduce memory consumption.
+* @todo automatic optimization
+*/
+#define CNN_USE_SHRINK_LAYER

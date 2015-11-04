@@ -65,6 +65,9 @@ public:
       window_size_(window_size)
     {
         init_connection(connection_table());
+#ifdef CNN_USE_SHRINK_LAYER
+		this->shrink_after_init();
+#endif
     }
 
     convolutional_layer(layer_size_t in_width, layer_size_t in_height, layer_size_t window_size, layer_size_t in_channels, layer_size_t out_channels, const connection_table& connection_table)
@@ -78,6 +81,9 @@ public:
     {
         init_connection(connection_table);
         this->remap();
+#ifdef CNN_USE_SHRINK_LAYER
+		this->shrink_after_init();
+#endif
     }
 
     image<> output_to_image(size_t worker_index = 0) const {
@@ -122,7 +128,11 @@ public:
     std::string layer_type() const override { return "conv"; }
 
 private:
+	long _link_cnt;
+	long SHRINK_INTERVAL = 1024 * 1024 * 1024 / (24 + 12);
+
     void init_connection(const connection_table& table) {
+		_link_cnt = 0;
         for (layer_size_t inc = 0; inc < in_.depth_; ++inc) {
             for (layer_size_t outc = 0; outc < out_.depth_; ++outc) {
                 if (!table.is_connected(outc, inc)) {
@@ -143,11 +153,16 @@ private:
 
     void connect_kernel(layer_size_t inc, layer_size_t outc, layer_size_t x, layer_size_t y) {
         for (layer_size_t dy = 0; dy < window_size_; ++dy)
-            for (layer_size_t dx = 0; dx < window_size_; ++dx)
-                this->connect_weight(
-                    in_.get_index(x + dx, y + dy, inc), 
-                    out_.get_index(x, y, outc), 
-                    weight_.get_index(dx, dy, outc * in_.depth_ + inc));
+			for (layer_size_t dx = 0; dx < window_size_; ++dx) {
+				this->connect_weight(
+					in_.get_index(x + dx, y + dy, inc),
+					out_.get_index(x, y, outc),
+					weight_.get_index(dx, dy, outc * in_.depth_ + inc));
+#ifdef CNN_USE_SHRINK_LAYER
+				if (++_link_cnt % SHRINK_INTERVAL == 0)
+					this->shrink_during_init();
+#endif
+			}
     }
 
     index3d<layer_size_t> in_;
